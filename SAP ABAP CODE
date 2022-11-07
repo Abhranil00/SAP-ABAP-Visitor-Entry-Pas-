@@ -1,0 +1,635 @@
+*&---------------------------------------------------------------------*
+*& Report Z_AB_GUEST_FORM
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT Z_AB_GUEST_FORM.
+
+TABLES ZGUEST_AB_TABLE.
+
+ TYPES: BEGIN OF ZGUEST,
+       GUEST_ID TYPE  ZGUEST_AB_TABLE-GUEST_ID,
+       GUEST_FNAME TYPE  ZGUEST_AB_TABLE-GUEST_FNAME,
+        GUEST_LNAME TYPE  ZGUEST_AB_TABLE-GUEST_LNAME,
+        GUEST_EMAIL TYPE  ZGUEST_AB_TABLE-GUEST_EMAIL,
+        GUEST_GENDER TYPE  ZGUEST_AB_TABLE-GUEST_GENDER,
+        GUEST_PHONE_NUMBER TYPE  ZGUEST_AB_TABLE-GUEST_PHONE_NUMBER,
+        DOC_NO TYPE  ZGUEST_AB_TABLE-DOC_NO,
+        IN_TIME TYPE  ZGUEST_AB_TABLE-IN_TIME,
+        OUT_TIME TYPE  ZGUEST_AB_TABLE-OUT_TIME,
+        REASON TYPE  ZGUEST_AB_TABLE-REASON,
+        PERSON_VISIT TYPE  ZGUEST_AB_TABLE-PERSON_VISIT,
+        VISIT_DATE TYPE  ZGUEST_AB_TABLE-VISIT_DATE,
+        DEPERTMENT TYPE  ZGUEST_AB_TABLE-DEPERTMENT,
+        ADDRESS TYPE ZGUEST_AB_TABLE-ADDRESS,
+        VEHICLENO TYPE ZGUEST_AB_TABLE-VEHICLENO,
+        ORGANISATION TYPE ZGUEST_AB_TABLE-ORGANISATION,
+        MATERIALS TYPE ZGUEST_AB_TABLE-MATERIALS,
+        PERSON_ACCOMODATE TYPE ZGUEST_AB_TABLE-PERSON_ACCOMODATE,
+        PHO_NUM TYPE ZGUEST_AB_TABLE-Pho_num,
+      END OF ZGUEST.
+
+DATA : IT_ZGUEST TYPE TABLE OF ZGUEST,
+        WA_ZGUEST TYPE ZGUEST.
+
+DATA :  E_REGEX TYPE REF TO CL_ABAP_REGEX,
+          E_matcher TYPE REF TO CL_ABAP_MATCHER,
+          E_MATCH TYPE C LENGTH 1,
+         GUEST_EMAIL TYPE AD_SMTPADR,
+         GV_REGEX TYPE REF TO CL_ABAP_REGEX,
+      Gv_matcher TYPE REF TO CL_ABAP_MATCHER,
+      Gv_match TYPE C LENGTH 1,
+      GV TYPE AD_SMTPADR.
+
+DATA VAL TYPE I.
+DATA CODE TYPE I.
+DATA PHNO TYPE I .
+DATA PANNO TYPE I.
+DATA PASSNO TYPE I.
+DATA VOTENO TYPE I.
+DATA DRIVENO TYPE I.
+DATA AADNO TYPE I.
+
+
+ DATA : PHOTO_NAME TYPE TDOBNAME.
+* DATA : P_NAME(10) TYPE C.
+ PHOTO_NAME = ZGUEST_AB_TABLE-Pho_num.
+  DATA: W_LINES TYPE I.
+TYPES PICT_LINE(256) TYPE C.
+*
+DATA :CONTAINER TYPE REF TO CL_GUI_CUSTOM_CONTAINER,
+EDITOR TYPE REF TO CL_GUI_TEXTEDIT,
+PICTURE TYPE REF TO CL_GUI_PICTURE,
+PICT_TAB TYPE TABLE OF PICT_LINE,
+URL(255) TYPE C.
+
+DATA: GRAPHIC_URL(255).
+
+DATA: BEGIN OF GRAPHIC_TABLE OCCURS 0,
+LINE(255) TYPE X,
+END OF GRAPHIC_TABLE.
+
+DATA: L_GRAPHIC_CONV TYPE I.
+DATA: L_GRAPHIC_OFFS TYPE I.
+DATA: GRAPHIC_SIZE TYPE I.
+DATA: L_GRAPHIC_XSTR TYPE XSTRING.
+
+
+
+
+DATA :  GD_FILENAME LIKE RLGRAP-FILENAME,
+
+GD_NAME LIKE STXBITMAPS-TDNAME,
+
+GD_OBJECT LIKE STXBITMAPS-TDOBJECT,
+
+GD_ID LIKE STXBITMAPS-TDID,
+
+GD_BTYPE LIKE STXBITMAPS-TDBTYPE,
+
+GD_RESIDENT LIKE STXBITMAPS-RESIDENT,
+
+GD_AUTOHEIGHT LIKE STXBITMAPS-AUTOHEIGHT,
+
+GD_BMCOMP LIKE STXBITMAPS-BMCOMP,
+
+GD_EXTENSION LIKE RLGRAP-FILENAME,
+
+GD_DOCID LIKE STXBITMAPS-DOCID,
+
+GD_RESOLUTION LIKE STXBITMAPS-RESOLUTION,
+
+P_FILE TYPE IBIPPARMS-PATH.
+
+
+DATA : NAME TYPE I ,
+        LINK(200) TYPE C.
+
+*DESCRIBE TABLE IT_ZGUEST LINES COUNT.
+
+*    LOOP AT IT_ZGUEST INTO WA_ZGUEST.
+*
+*      GUESTID = ZGUEST_AB_TABLE-GUEST_ID.
+*
+*      ENDLOOP.
+
+CALL SCREEN 200.
+*CALL SCREEN 100.
+
+
+
+
+
+
+
+*&---------------------------------------------------------------------*
+*& Module STATUS_0100 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0100 OUTPUT.
+SET PF-STATUS 'BUT'.
+ SET TITLEBAR 'TITLE3'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0100 INPUT.
+CASE SY-UCOMM.
+
+  WHEN 'BACK'.
+    LEAVE TO SCREEN 0.
+  WHEN 'UP'.
+    LEAVE TO SCREEN 0.
+  WHEN 'CANCEL'.
+    LEAVE TO SCREEN 0.
+  WHEN 'SUBMIT'.
+
+    PHNO = STRLEN( ZGUEST_AB_TABLE-GUEST_PHONE_NUMBER ).
+    PANNO = STRLEN( ZGUEST_AB_TABLE-DOC_NO ).
+    PASSNO = STRLEN( ZGUEST_AB_TABLE-DOC_NO ).
+    AADNO = STRLEN( ZGUEST_AB_TABLE-DOC_NO ).
+    VOTENO = STRLEN( ZGUEST_AB_TABLE-DOC_NO ).
+    DRIVENO = STRLEN( ZGUEST_AB_TABLE-DOC_NO ).
+
+      CREATE OBJECT E_REGEX
+                    EXPORTING
+                      PATTERN = '\w+(\.\w+)*@(\w+\.)+(\w{2,4})'
+                      IGNORE_CASE = ABAP_TRUE.
+                 E_MATCHER = E_REGEX->CREATE_MATCHER( TEXT = ZGUEST_AB_TABLE-GUEST_EMAIL ).
+
+      GV = ZGUEST_AB_TABLE-VEHICLENO.
+                 CREATE OBJECT Gv_regex
+                    EXPORTING
+                      pattern = '([A-Z]{2}[-][0-9]{2}[A-Z]*[-][0-9]{4})?'
+
+                      ignore_case = abap_true.
+                      Gv_matcher = Gv_regex->create_matcher( text = GV ).
+
+ IF ZGUEST_AB_TABLE-GUEST_FNAME IS INITIAL.
+   MESSAGE ' ENTER FIRST NAME ' TYPE 'I'.
+
+ ELSEIF ZGUEST_AB_TABLE-GUEST_FNAME CA '1234567890' OR ZGUEST_AB_TABLE-GUEST_FNAME CA '!@#$%^&*()-_=+{}[]:;""''<>?,./|\'.
+          MESSAGE ' ENTER VALID FIRST NAME ' TYPE 'I'.
+
+          ELSEIF ZGUEST_AB_TABLE-GUEST_LNAME IS INITIAL.
+   MESSAGE ' ENTER LAST NAME ' TYPE 'I'.
+
+        ELSEIF ZGUEST_AB_TABLE-GUEST_LNAME CA '1234567890' OR ZGUEST_AB_TABLE-GUEST_LNAME CA '!@#$%^&*()-_=+{}[]:;""''<>?,./|\'.
+          MESSAGE ' ENTER VALID LAST NAME ' TYPE 'I'.
+
+
+        ELSEIF ZGUEST_AB_TABLE-GUEST_PHONE_NUMBER IS INITIAL.
+   MESSAGE ' ENTER PHONE NUMBER ' TYPE 'I'.
+
+ ELSEIF PHNO < 10 OR  ZGUEST_AB_TABLE-GUEST_PHONE_NUMBER CA 'ABCDEFGHIJKLMNOPQRSTUVXYZ' OR ZGUEST_AB_TABLE-GUEST_PHONE_NUMBER CA '!@#$%^&*()-_=+{}[]:;""''<>?,./|\'.
+          MESSAGE ' ENTER VALID PHONE NUMBER ' TYPE 'I'.
+
+        ELSEIF E_MATCHER->MATCH( ) IS INITIAL.
+                   MESSAGE 'Invalid Email Address' TYPE 'I'.
+
+        ELSEIF Gv_matcher->match( ) IS INITIAL.
+                     MESSAGE 'Invalid vehicle number' TYPE 'I'.
+
+
+
+
+
+        ELSEIF ZGUEST_AB_TABLE-DOC_TYPE IS INITIAL.
+          MESSAGE 'ENTER DOCUMENT TYPE' TYPE 'I'.
+
+        ELSEIF ZGUEST_AB_TABLE-DOC_NO IS INITIAL.
+          MESSAGE 'ENTER DOCUMENT NUMBER' TYPE 'I'.
+
+          ELSEIF ZGUEST_AB_TABLE-DOC_TYPE = 'PAN CARD' AND PANNO <> 10.
+            MESSAGE 'ENTER VALID PAN CARD NUMBER' TYPE 'I'.
+            ELSEIF ZGUEST_AB_TABLE-DOC_TYPE = 'PAN CARD' AND ZGUEST_AB_TABLE-DOC_NO CA '!@#$%^&*-_=+{}[]:;""''<>?,./|\'  .
+              MESSAGE 'ENTER VALID PAN CARD NUMBER' TYPE 'I'.
+
+         ELSEIF ZGUEST_AB_TABLE-DOC_TYPE = 'AADHAAR' AND AADNO <> 12.
+           MESSAGE 'ENTER VALID ADDHAR CARD NUMBER' TYPE 'I'.
+           ELSEIF ZGUEST_AB_TABLE-DOC_TYPE = 'AADHAAR' AND ZGUEST_AB_TABLE-DOC_NO CA '!@#$%^&*-_=+{}[]:;""''<>?,./|\'.
+             MESSAGE 'ENTER VALID ADDHAR CARD NUMBER' TYPE 'I'.
+             ELSEIF ZGUEST_AB_TABLE-DOC_TYPE = 'AADHAAR' AND ZGUEST_AB_TABLE-DOC_NO CA 'ABCDEFGHIJKLMNOPQRSTUVXYZ'  .
+              MESSAGE 'ENTER VALID ADDHAR CARD NUMBER' TYPE 'I'.
+
+         ELSEIF ZGUEST_AB_TABLE-DOC_TYPE = 'PASSPORT' AND PASSNO <> 12.
+           MESSAGE 'ENTER VALID PASSPORT NUMBER' TYPE 'I'.
+           ELSEIF ZGUEST_AB_TABLE-DOC_TYPE = 'PASSPORT' AND ZGUEST_AB_TABLE-DOC_NO CA '!@#$%^&*-_=+{}[]:;""''<>?,./|\'  .
+              MESSAGE 'ENTER VALID PASSPORT NUMBER' TYPE 'I'.
+
+
+          ELSEIF ZGUEST_AB_TABLE-DOC_TYPE = 'VOTER ID' AND VOTENO <> 12.
+             MESSAGE 'ENTER VALID VOTER ID NUMBER' TYPE 'I'.
+            ELSEIF ZGUEST_AB_TABLE-DOC_TYPE = 'VOTER ID' AND ZGUEST_AB_TABLE-DOC_NO CA '!@#$%^&*-_=+{}[]:;""''<>?,./|\'  .
+              MESSAGE 'ENTER VALID VOTER ID NUMBER' TYPE 'I'.
+
+
+          ELSEIF ZGUEST_AB_TABLE-DOC_TYPE = 'DRIVING' AND  DRIVENO <> 15 .
+            MESSAGE 'ENTER VALID DRIVING LICENSE NUMBER' TYPE 'I'.
+            ELSEIF ZGUEST_AB_TABLE-DOC_TYPE = 'DRIVING' AND ZGUEST_AB_TABLE-DOC_NO CA '!@#$%^&*-_=+{}[]:;""''<>?,./|\'  .
+              MESSAGE 'ENTER VALID DRIVING LICENSE NUMBER' TYPE 'I'.
+
+
+          ELSEIF ZGUEST_AB_TABLE-REASON IS INITIAL.
+          MESSAGE 'ENTER PURPOSE OF VISIT' TYPE 'I'.
+
+          ELSEIF ZGUEST_AB_TABLE-DEPERTMENT IS INITIAL.
+          MESSAGE 'ENTER DEPERETMENT' TYPE 'I'.
+
+          ELSEIF ZGUEST_AB_TABLE-PERSON_VISIT IS INITIAL.
+          MESSAGE 'ENTER PERSON TO VISIT' TYPE 'I'.
+
+
+*        ENDIF.
+
+
+ELSE.
+
+
+
+    SELECT COUNT(*) INTO VAL FROM ZGUEST_AB_TABLE.
+      ZGUEST_AB_TABLE-GUEST_ID = VAL + 1.
+
+        ZGUEST_AB_TABLE-IN_TIME = SYST-UZEIT.
+        ZGUEST_AB_TABLE-VISIT_DATE = SYST-DATUM.
+
+
+         DATA : PHO TYPE STRING.
+         DATA PHONUM TYPE STRING.
+
+
+             CALL FUNCTION 'GENERAL_GET_RANDOM_STRING'
+               EXPORTING
+                 NUMBER_CHARS  = 14
+               IMPORTING
+                 RANDOM_STRING = PHO.
+
+
+
+           CALL FUNCTION 'SPP01_CONVERT_TO_UPPERCASE'
+             EXPORTING
+               IF_INPUT =                   PHO
+*              if_langu =                   ld_if_langu
+             IMPORTING
+               EF_OUTPUT =                  PHONUM
+               .  "  SPP01_CONVERT_TO_UPPERCASE
+
+           IF SY-SUBRC EQ 0.
+             "All OK
+           ENDIF.
+
+        ZGUEST_AB_TABLE-PHO_NUM = PHONUM.
+
+
+
+    MODIFY ZGUEST_AB_TABLE FROM ZGUEST_AB_TABLE.
+
+
+
+          GD_FILENAME = P_FILE. " ADD THE PHOTO TO SE78
+
+                              GD_NAME = PHONUM.
+
+                              GD_OBJECT = 'GRAPHICS'.
+
+                              GD_ID = 'BMAP'.
+
+                              GD_BTYPE = 'BCOL'. "If u want black and white pass BMON
+
+                              GD_RESIDENT = ' '.
+
+                              GD_AUTOHEIGHT = 'X'.
+
+                              GD_BMCOMP = 'X'.
+
+                              GD_EXTENSION = 'BMP'.
+
+                              PERFORM IMPORT_BITMAP_BDS IN PROGRAM SAPLSTXBITMAPS
+
+                              USING GD_FILENAME
+
+                              GD_NAME
+
+                              GD_OBJECT
+
+                              GD_ID
+
+                              GD_BTYPE
+
+                              GD_EXTENSION
+
+                              ' '
+
+                              GD_RESIDENT
+
+                              GD_AUTOHEIGHT
+
+                              GD_BMCOMP
+
+                              CHANGING GD_DOCID
+
+                              GD_RESOLUTION.
+
+
+*                              IF sy-subrc = 0.
+*
+*                                MESSAGE 'Upload Successfull' TYPE 'I'.
+*                               ENDIF.
+
+                              IF P_FILE IS NOT INITIAL AND GD_NAME IS NOT INITIAL.
+                                  CLEAR LINK.
+                              ENDIF.
+
+
+
+      IF SY-SUBRC = 0.
+        MESSAGE |'GUEST INFORMATION ENTERED SUCCESSFULLY WITH GUEST ID :{ ZGUEST_AB_TABLE-GUEST_ID } '| TYPE 'I'.
+
+      CLEAR ZGUEST_AB_TABLE.
+
+    DATA : ANS TYPE CHAR1.
+
+CALL FUNCTION 'POPUP_WITH_2_BUTTONS_TO_CHOOSE'
+  EXPORTING
+*   DEFAULTOPTION       = '1'
+    DIAGNOSETEXT1       = 'DO YOU WANT TO PRINT?'
+*   DIAGNOSETEXT2       = ' '
+*   DIAGNOSETEXT3       = ' '
+    TEXTLINE1           = ''
+*   TEXTLINE2           = ' '
+*   TEXTLINE3           = ' '
+    TEXT_OPTION1        = 'Yes'
+    TEXT_OPTION2        = 'No'
+    TITEL               = 'Choose'
+ IMPORTING
+   ANSWER              = ANS
+          .
+
+CASE ANS.
+
+  WHEN '1'.
+    INCLUDE ZGUESTPRINT.
+  WHEN '2'.
+    CALL TRANSACTION 'ZINDIGI_GUEST'.
+  WHEN 'A'.
+    CALL TRANSACTION 'ZINDIGI_GUEST'.
+ENDCASE.
+
+        ENDIF.
+ ENDIF.
+
+  WHEN 'BACK'.
+    CALL SCREEN 200.
+   WHEN 'REFRESH'.
+     CLEAR ZGUEST_AB_TABLE.
+     CLEAR LINK.
+   WHEN 'TAKE'.
+     CALL TRANSACTION 'ZWEB'.
+   WHEN 'UPLOAD'.
+       CALL FUNCTION 'F4_FILENAME'
+           EXPORTING
+
+*             PROGRAM_NAME        =
+*             DYNPRO_NUMBER      =
+             FIELD_NAME                = 'C:\Users\ACER PREDATOR\Pictures\Webcamoid\'
+          IMPORTING
+             FILE_NAME           = P_FILE.
+
+             LINK = P_FILE.
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0200  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+
+MODULE STATUS_0200 OUTPUT.
+ SET PF-STATUS 'BUT2'.
+ SET TITLEBAR 'TITLE1'.
+
+ DATA: W_LINES1 TYPE I.
+TYPES PICT_LINE1(256) TYPE C.
+*
+DATA :CONTAINER1 TYPE REF TO CL_GUI_CUSTOM_CONTAINER,
+EDITOR1 TYPE REF TO CL_GUI_TEXTEDIT,
+PICTURE1 TYPE REF TO CL_GUI_PICTURE,
+PICT_TAB1 TYPE TABLE OF PICT_LINE1,
+URL1(255) TYPE C.
+
+DATA: GRAPHIC_URL1(255).
+
+DATA: BEGIN OF GRAPHIC_TABLE1 OCCURS 0,
+LINE1(255) TYPE X,
+END OF GRAPHIC_TABLE1.
+
+DATA: L_GRAPHIC_CONV1 TYPE I.
+DATA: L_GRAPHIC_OFFS1 TYPE I.
+DATA: GRAPHIC_SIZE1 TYPE I.
+DATA: L_GRAPHIC_XSTR1 TYPE XSTRING.
+
+
+CALL METHOD CL_GUI_CFW=>FLUSH.
+
+CREATE OBJECT:
+
+CONTAINER1 EXPORTING CONTAINER_NAME = 'LOGO',
+PICTURE1 EXPORTING PARENT = CONTAINER1.
+
+*Method which takes the object “WATERMARK_DEMO” – uploaded through *SE78 into the ABAP memory. Change name to object to be displayed in
+*screen.
+
+CALL METHOD CL_SSF_XSF_UTILITIES=>GET_BDS_GRAPHIC_AS_BMP
+
+EXPORTING
+P_OBJECT = 'GRAPHICS'
+P_NAME = 'ZIDGLOGO'
+P_ID = 'BMAP'
+P_BTYPE = 'BCOL'
+
+RECEIVING
+P_BMP = L_GRAPHIC_XSTR1
+
+.
+
+*graphic_size = xstrlen( l_graphic_xstr ).
+GRAPHIC_SIZE1 = XSTRLEN( L_GRAPHIC_XSTR1 ).
+
+L_GRAPHIC_CONV1 = GRAPHIC_SIZE1.
+
+L_GRAPHIC_OFFS1 = 0.
+
+WHILE L_GRAPHIC_CONV1 > 255.
+
+GRAPHIC_TABLE1-LINE1 = L_GRAPHIC_XSTR1+L_GRAPHIC_OFFS1(255).
+APPEND GRAPHIC_TABLE1.
+L_GRAPHIC_OFFS1 = L_GRAPHIC_OFFS1 + 255.
+L_GRAPHIC_CONV1 = L_GRAPHIC_CONV1 - 255.
+
+ENDWHILE.
+
+GRAPHIC_TABLE1-LINE1 = L_GRAPHIC_XSTR1+L_GRAPHIC_OFFS1(L_GRAPHIC_CONV1).
+
+APPEND GRAPHIC_TABLE1.
+
+CALL FUNCTION 'DP_CREATE_URL'
+
+EXPORTING
+TYPE = 'IMAGE'
+SUBTYPE = 'X-UNKNOWN'
+SIZE = GRAPHIC_SIZE1
+LIFETIME = 'T'
+
+TABLES
+DATA = GRAPHIC_TABLE1
+
+CHANGING
+URL = URL1.
+
+CALL METHOD PICTURE1->LOAD_PICTURE_FROM_URL
+
+EXPORTING
+URL = URL1.
+
+CALL METHOD PICTURE1->SET_DISPLAY_MODE
+
+EXPORTING
+
+DISPLAY_MODE = PICTURE1->DISPLAY_MODE_FIT_CENTER.
+
+
+ENDMODULE.
+
+MODULE USER_COMMAND_0200 INPUT.
+CASE SY-UCOMM.
+
+  WHEN 'ENTRY' .
+    CALL SCREEN 100.
+WHEN 'BACK2'.
+    LEAVE TO SCREEN 0.
+  WHEN 'UP2'.
+    LEAVE TO SCREEN 0.
+  WHEN 'CANCEL2'.
+    LEAVE TO SCREEN 0.
+  WHEN 'EXIT'.
+    CALL SCREEN 400.
+  WHEN 'DISPALY'.
+    CALL TRANSACTION 'ZGUEST_TABLE'.
+  WHEN 'PRINT'.
+    CALL TRANSACTION 'ZGUESTPRINT'.
+
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0200 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Module STATUS_0400 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE STATUS_0400 OUTPUT.
+ SET PF-STATUS 'BUT3'.
+ SET TITLEBAR 'TITLE2'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0400  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE USER_COMMAND_0400 INPUT.
+CASE SY-UCOMM.
+
+WHEN 'BACK3'.
+    LEAVE TO SCREEN 0.
+  WHEN 'UP3'.
+    LEAVE TO SCREEN 0.
+  WHEN 'CANCEL3'.
+    LEAVE TO SCREEN 0.
+  WHEN 'ENTER'.
+
+    IF ZGUEST_AB_TABLE-GUEST_ID IS INITIAL.
+      MESSAGE 'ENTER GUEST ID' TYPE 'I'.
+
+
+
+
+ELSEIF CONTAINER IS INITIAL AND GRAPHIC_TABLE IS INITIAL AND EDITOR IS INITIAL.
+
+    INCLUDE ZGUEST_SELECT.
+
+    ELSE.
+
+         CALL METHOD CONTAINER->FREE
+        EXCEPTIONS
+          CNTL_ERROR = 1
+          CNTL_SYSTEM_ERROR = 2 .
+
+     CLEAR EDITOR.
+     REFRESH GRAPHIC_TABLE.
+
+
+    INCLUDE ZGUEST_SELECT.
+
+
+
+
+
+
+    ENDIF.
+
+   WHEN 'REFRESH'.
+     CLEAR ZGUEST_AB_TABLE.
+
+     CALL METHOD CONTAINER->FREE
+        EXCEPTIONS
+          CNTL_ERROR = 1
+          CNTL_SYSTEM_ERROR = 2 .
+
+     CLEAR EDITOR.
+     REFRESH GRAPHIC_TABLE.
+
+
+   WHEN 'SUBMIT'.
+     IF ZGUEST_AB_TABLE-GUEST_ID IS INITIAL.
+      MESSAGE 'ENTER GUEST ID' TYPE 'I'.
+
+     ELSEIF ZGUEST_AB_TABLE-OUT_TIME IS INITIAL.
+
+       ZGUEST_AB_TABLE-OUT_TIME = SYST-UZEIT.
+       MODIFY ZGUEST_AB_TABLE FROM ZGUEST_AB_TABLE.
+        IF SY-SUBRC = 0.
+        MESSAGE |'GUEST INFORMATION ENTERED SUCCESSFULLY '| TYPE 'I'.
+        ENDIF.
+
+  ELSE.
+       MESSAGE |'GUEST INFORMATION ALREADY ENTERED '| TYPE 'I'.
+  ENDIF.
+
+     CLEAR ZGUEST_AB_TABLE.
+CALL METHOD CONTAINER->FREE
+        EXCEPTIONS
+          CNTL_ERROR = 1
+          CNTL_SYSTEM_ERROR = 2 .
+
+WHEN 'BACK'.
+  CLEAR ZGUEST_AB_TABLE.
+IF CONTAINER IS INITIAL AND GRAPHIC_TABLE IS INITIAL AND EDITOR IS INITIAL.
+  LEAVE TO SCREEN 0.
+ELSE.
+     CALL METHOD CONTAINER->FREE
+        EXCEPTIONS
+          CNTL_ERROR = 1
+          CNTL_SYSTEM_ERROR = 2 .
+
+     CLEAR EDITOR.
+     REFRESH GRAPHIC_TABLE.
+    CALL SCREEN 200.
+ENDIF.
+  ENDCASE.
+ENDMODULE.
